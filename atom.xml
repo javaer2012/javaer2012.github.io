@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <title>javaer&#39;s blog</title>
-  <subtitle>不卑不亢，不慌不忙</subtitle>
+  <title>Javaer的博客</title>
+  <subtitle>不卑不亢，不骄不躁</subtitle>
   <link href="/atom.xml" rel="self"/>
   
-  <link href="http://yoursite.com/"/>
-  <updated>2017-01-15T03:25:27.868Z</updated>
-  <id>http://yoursite.com/</id>
+  <link href="http://javaer.site/"/>
+  <updated>2017-01-23T15:10:33.657Z</updated>
+  <id>http://javaer.site/</id>
   
   <author>
-    <name>javaer</name>
+    <name>Javaer</name>
     
   </author>
   
@@ -17,28 +17,34 @@
   
   <entry>
     <title>Hello World</title>
-    <link href="http://yoursite.com/2017/01/15/hello-world/"/>
-    <id>http://yoursite.com/2017/01/15/hello-world/</id>
-    <published>2017-01-15T03:25:27.868Z</published>
-    <updated>2017-01-15T03:25:27.868Z</updated>
+    <link href="http://javaer.site/2017/01/23/hello-world/"/>
+    <id>http://javaer.site/2017/01/23/hello-world/</id>
+    <published>2017-01-23T12:58:04.000Z</published>
+    <updated>2017-01-23T15:10:33.657Z</updated>
     
-    <content type="html"><![CDATA[<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="external">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="external">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="external">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="external">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo new <span class="string">"My New Post"</span></div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="external">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo server</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="external">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo generate</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="external">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo deploy</div></pre></td></tr></table></figure>
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="external">Deployment</a></p>
+    <content type="html"><![CDATA[<iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="330" height="86" src="//music.163.com/outchain/player?type=2&id=38592976&auto=1&height=66"></iframe>  
+
+<p>在Google君、Github君的帮助下，在完全闲下来的状态下，折腾了两天，我的个人博客终于搭建起来了。  </p>
+<p>整个博客系统基于Hexo，而Hexo则出自台湾大学生 tommy351 之手，是一个基于 Node.js的静态博客程序，其编译上百篇文字只需要几秒。Markdown写作，Hexo生成的静态页面推送到Github仓库，域名与Github pages绑定，这样一个逼格极高适合程序猿写作方式的博客就搭建完了。Hexo这个名字我很喜欢，就连发音都像是黑客哦！     </p>
+<p>一直纠结是否需要自己搭建一个博客系统，之前一直在Wiz笔记上写技术博客，可是从2017年1月份开始，Wiz开始收费了，免费版无法与云端进行同步。看着自己账号下边的483篇文章，思来想去还是动手自己弄一个吧，况且之前用Wiz笔记的时候也非常熟悉Markdown的语法了，也特别想通过这种分享方式推动着自己不断进步。我更愿意把它作为我的一个小领地，在这里可以区别于QQ空间、微博、微信朋友圈式的分享，这里我可以完全按照自己的方式去分享心情、技术和曾经踩过的坑。  </p>
+<a id="more"></a>
+<p>既然程序猿的世界数字永远从0开始，学习永远从”Hello World”开始，那么本篇博文就以Hello Wolrd!为题吧,我会陆续将学习的笔记往上版，敬请各位的期待~~~</p>
 ]]></content>
     
     <summary type="html">
     
-      &lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.
+      &lt;iframe frameborder=&quot;no&quot; border=&quot;0&quot; marginwidth=&quot;0&quot; marginheight=&quot;0&quot; width=&quot;330&quot; height=&quot;86&quot; src=&quot;//music.163.com/outchain/player?type=2&amp;id=38592976&amp;auto=1&amp;height=66&quot;&gt;&lt;/iframe&gt;  
+
+&lt;p&gt;在Google君、Github君的帮助下，在完全闲下来的状态下，折腾了两天，我的个人博客终于搭建起来了。  &lt;/p&gt;
+&lt;p&gt;整个博客系统基于Hexo，而Hexo则出自台湾大学生 tommy351 之手，是一个基于 Node.js的静态博客程序，其编译上百篇文字只需要几秒。Markdown写作，Hexo生成的静态页面推送到Github仓库，域名与Github pages绑定，这样一个逼格极高适合程序猿写作方式的博客就搭建完了。Hexo这个名字我很喜欢，就连发音都像是黑客哦！     &lt;/p&gt;
+&lt;p&gt;一直纠结是否需要自己搭建一个博客系统，之前一直在Wiz笔记上写技术博客，可是从2017年1月份开始，Wiz开始收费了，免费版无法与云端进行同步。看着自己账号下边的483篇文章，思来想去还是动手自己弄一个吧，况且之前用Wiz笔记的时候也非常熟悉Markdown的语法了，也特别想通过这种分享方式推动着自己不断进步。我更愿意把它作为我的一个小领地，在这里可以区别于QQ空间、微博、微信朋友圈式的分享，这里我可以完全按照自己的方式去分享心情、技术和曾经踩过的坑。  &lt;/p&gt;
     
     </summary>
     
+    
+      <category term="心情" scheme="http://javaer.site/tags/%E5%BF%83%E6%83%85/"/>
+    
+      <category term="hexo" scheme="http://javaer.site/tags/hexo/"/>
     
   </entry>
   
