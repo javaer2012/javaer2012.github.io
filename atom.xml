@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://javaer.site/"/>
-  <updated>2017-01-23T15:26:40.968Z</updated>
+  <updated>2017-01-25T02:03:30.626Z</updated>
   <id>http://javaer.site/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://javaer.site/2017/01/23/hello-world/"/>
     <id>http://javaer.site/2017/01/23/hello-world/</id>
     <published>2017-01-23T12:58:04.000Z</published>
-    <updated>2017-01-23T15:26:40.968Z</updated>
+    <updated>2017-01-25T02:03:30.626Z</updated>
     
     <content type="html"><![CDATA[<iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="330" height="86" src="//music.163.com/outchain/player?type=2&id=38592976&auto=1&height=66"></iframe>  
 
@@ -28,7 +28,7 @@
 <p>整个博客系统基于Hexo，而Hexo则出自台湾大学生 tommy351 之手，是一个基于 Node.js的静态博客程序，其编译上百篇文字只需要几秒。Markdown写作，Hexo生成的静态页面推送到 Github 仓库，域名与 Github pages 绑定，这样一个逼格极高适合程序猿写作方式的博客就搭建完了。Hexo这个名字我很喜欢，就连发音都像是黑客哦！     </p>
 <p>一直纠结是否需要自己搭建一个博客系统，之前一直在Wiz笔记上写技术博客，可是从2017年1月份开始，Wiz开始收费了，免费版无法与云端进行同步。看着自己账号下边的483篇文章，思来想去还是动手自己弄一个吧，况且之前用Wiz笔记的时候也非常熟悉 Markdown 的语法了，也特别想通过这种分享方式推动着自己不断进步。我更愿意把它作为我的一个小领地，在这里可以区别于QQ空间、微博、微信朋友圈式的分享，这里我可以完全按照自己的方式去分享心情、技术和曾经踩过的坑。  </p>
 <a id="more"></a>
-<p>既然程序猿的世界数字永远从0开始，学习永远从 Hello World 开始，那么本篇博文就以 Hello Wolrd 为题吧,我会陆续将学习的笔记往上版，敬请各位的期待~~~</p>
+<p>既然程序猿的世界数字永远从0开始，学习永远从 Hello World 开始，那么本篇博文就以 Hello Wolrd 为题吧,我会陆续将学习的笔记往上搬。</p>
 ]]></content>
     
     <summary type="html">
