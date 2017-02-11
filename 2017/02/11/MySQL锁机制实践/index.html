@@ -25,8 +25,9 @@
 <meta property="og:image" content="http://javaer.site/2017/02/11/MySQL锁机制实践/1.png">
 <meta property="og:image" content="http://javaer.site/2017/02/11/MySQL锁机制实践/8.png">
 <meta property="og:image" content="http://javaer.site/2017/02/11/MySQL锁机制实践/9.png">
+<meta property="og:image" content="http://javaer.site/2017/02/11/MySQL锁机制实践/10.png">
 <meta property="og:image" content="http://javaer.site/2017/02/11/MySQL锁机制实践/11.png">
-<meta property="og:updated_time" content="2017-02-11T07:39:07.546Z">
+<meta property="og:updated_time" content="2017-02-11T07:50:34.537Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="MySQL锁机制实践">
 <meta name="twitter:description" content="最近几天项目上遇到一个需求，现有系统需要访问外部的API，而API提供方的鉴权方式 ，需要三个步骤：1.访问签名接口1获取授权编码（authCode），authCode有效期10s，authCode在生命周期内无法重复获取且只能使用一次；2.根据授权编码生成加密后的数字签名；3.根据授权编码、数字签名访问接口2获得令牌token，token有效期20分钟；业务接口访问带上token值完成鉴权认证">
@@ -312,7 +313,7 @@
 <td style="text-align:left">能够查询数据，但是不能加排他锁，否则会挂起等待<img src="/2017/02/11/MySQL锁机制实践/9.png" alt="Mou icon"></td>
 </tr>
 <tr>
-<td style="text-align:left">执行更新，并且做commit<a href="MySQL锁机制实践/10.png">Mou icon</a></td>
+<td style="text-align:left">执行更新，并且做commit<img src="/2017/02/11/MySQL锁机制实践/10.png" alt="Mou icon"></td>
 <td style="text-align:left">不做任何操作</td>
 </tr>
 <tr>
@@ -532,19 +533,19 @@
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">心情</a>
-              </li>
-             
-              <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color5">hexo</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">MySQL</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Java</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">心情</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color5">hexo</a>
               </li>
             
             <div class="clearfix"></div>
