@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://javaer.site/"/>
-  <updated>2017-01-27T12:43:48.869Z</updated>
+  <updated>2017-02-11T07:39:07.546Z</updated>
   <id>http://javaer.site/</id>
   
   <author>
@@ -14,6 +14,214 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>MySQL锁机制实践</title>
+    <link href="http://javaer.site/2017/02/11/MySQL%E9%94%81%E6%9C%BA%E5%88%B6%E5%AE%9E%E8%B7%B5/"/>
+    <id>http://javaer.site/2017/02/11/MySQL锁机制实践/</id>
+    <published>2017-02-11T07:39:07.000Z</published>
+    <updated>2017-02-11T07:39:07.546Z</updated>
+    
+    <content type="html"><![CDATA[<blockquote>
+<p>最近几天项目上遇到一个需求，现有系统需要访问外部的API，而API提供方的鉴权方式 ，需要三个步骤：<br>1.访问签名接口1获取授权编码（authCode），authCode有效期10s，authCode在生命周期内无法重复获取且只能使用一次；<br>2.根据授权编码生成加密后的数字签名；<br>3.根据授权编码、数字签名访问接口2获得令牌token，token有效期20分钟；<br>业务接口访问带上token值完成鉴权认证，考虑到系统采用的是集群部署，无法在应用层面保证数据的一致性，为此考虑采用MySQL的锁机制进行实现，正好系统的学习一下MySQL的锁机制。 </p>
+</blockquote>
+<h4 id="1、MySQL锁概述"><a href="#1、MySQL锁概述" class="headerlink" title="1、MySQL锁概述"></a>1、MySQL锁概述</h4><p>相对其他数据库而言，MySQL的锁机制比较简单，其最显著的特点是不同的存储引擎支持不同的锁机制。比如，<code>MyISAM</code>和<code>MEMORY</code>存储引擎采用的是表级锁（<code>table-level locking</code>）；<code>BDB</code>存储引擎采用的是页面锁（<code>page-level locking</code>），但也支持表级锁；<code>InnoDB</code>存储引擎既支持行级锁（<code>row-level locking</code>），也支持表级锁，但默认情况下是采用行级锁，目前本系统采用到的存储引擎为<code>InnoDB</code>。  </p>
+<p>从锁的粒度层面MySQL分为表级锁、页面锁、行级锁三种形式。三种形式在系统开销、加锁速度、是否出现死锁、并发性能、锁的粒度都不太一样，如下表格所示：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">锁类型</th>
+<th style="text-align:center">系统开销</th>
+<th style="text-align:center">加锁速度</th>
+<th style="text-align:center">死锁</th>
+<th style="text-align:center">并发性能</th>
+<th style="text-align:center">锁的粒度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">表级锁</td>
+<td style="text-align:center">系统开销小</td>
+<td style="text-align:center">加锁快</td>
+<td style="text-align:center">不死锁</td>
+<td style="text-align:center">并发底</td>
+<td style="text-align:center">锁的粒度大</td>
+</tr>
+<tr>
+<td style="text-align:center">页面锁</td>
+<td style="text-align:center">两者之间</td>
+<td style="text-align:center">两者之间</td>
+<td style="text-align:center">会死锁</td>
+<td style="text-align:center">两者之间</td>
+<td style="text-align:center">两者之间</td>
+</tr>
+<tr>
+<td style="text-align:center">行级锁</td>
+<td style="text-align:center">系统开销大</td>
+<td style="text-align:center">加锁慢</td>
+<td style="text-align:center">会死锁</td>
+<td style="text-align:center">并发高</td>
+<td style="text-align:center">锁的粒度小</td>
+</tr>
+</tbody>
+</table>
+<p>从上述特点可见，从锁的角度来说：表级锁更适合于以查询为主，只有少量按索引条件更新数据的应用，如Web查询类应用；而行级锁则更适合于有大量按索引条件并发更新少量不同数据，同时又有并发查询的应用，如一些在线事务处理系统。下面重点介绍MySQL基于<code>InnoDB</code>的锁机制。</p>
+<a id="more"></a>
+<h4 id="2、InnoDB锁机制"><a href="#2、InnoDB锁机制" class="headerlink" title="2、InnoDB锁机制"></a>2、InnoDB锁机制</h4><p>InnoDB与MyISAM的最大不同有两点：一是支持事务（TRANSACTION）；二是采用了行级锁。行级锁与表级锁本来就有许多不同之处，另外，事务的引入也带来了一些新问题。下面我们先介绍一点背景知识，然后详细讨论InnoDB的锁问题。</p>
+<h5 id="2-1、事务的ACID属性"><a href="#2-1、事务的ACID属性" class="headerlink" title="2.1、事务的ACID属性"></a>2.1、事务的ACID属性</h5><ol>
+<li>原子性：<br>事务是一个原子操作单元，其对数据的修改，要么全都执行，要么全都不执行。  </li>
+<li>一致性：<br>在事务开始和完成时，数据都必须保持一致状态。这意味着所有相关的数据规则都必须应用于事务的修改，以保持数据的完整性；事务结束时，所有的内部数据结构（如B树索引或双向链表）也都必须是正确的。</li>
+<li>隔离性：<br>数据库系统提供一定的隔离机制，保证事务在不受外部并发操作影响的“独立”环境执行。这意味着事务处理过程中的中间状态对外部是不可见的，反之亦然。</li>
+<li>持久性：<br>事务完成之后，它对于数据的修改是永久性的，即使出现系统故障也能够保持。<h5 id="2-2、应用并发带来的问题"><a href="#2-2、应用并发带来的问题" class="headerlink" title="2.2、应用并发带来的问题"></a>2.2、应用并发带来的问题</h5></li>
+<li>数据丢失<br>当两个或多个事务选择同一行，然后基于最初选定的值更新该行时，由于每个事务都不知道其他事务的存在，就会发生丢失更新问题，最后的更新覆盖了由其他事务所做的更新。<br>举个栗子：两个线程同时更改某一行数据，线程1先读取某一行数据，此时线程2也同时读取了该行数数据，线程1对该数据的某一个字段进行+1的操作，线程2也对该字段进行+1的操作，数据库将保留最后一个线程的数据，如果能做到1个线程在修改数据且没有提交事务之前，另一个线程不能访问该数据，则可避免此问题。</li>
+<li>读脏数据<br>一个事务正在对一条记录做修改，在这个事务完成并提交前，这条记录的数据就处于不一致状态；这时，另一个事务也来读取同一条记录，如果不加控制，第二个事务读取了这些“脏”数据，并据此做进一步的处理，就会产生未提交的数据依赖关系。这种现象被形象地叫做”脏读”。</li>
+<li>不可重复读<br>一个事务在读取某些数据后的某个时间，再次读取以前读过的数据，却发现其读出的数据已经发生了改变、或某些记录已经被删除了！这种现象就叫做“不可重复读”。</li>
+<li>幻读<br>一个事务按相同的查询条件重新读取以前检索过的数据，却发现其他事务插入了满足其查询条件的新数据，这种现象就称为“幻读”。<h5 id="2-3、InnoDB行锁争用情况"><a href="#2-3、InnoDB行锁争用情况" class="headerlink" title="2.3、InnoDB行锁争用情况"></a>2.3、InnoDB行锁争用情况</h5>通过检查InnoDB_row_lock状态变量来分析系统上的行锁的争夺情况：<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">mysql&gt; show status like <span class="string">'innodb_row_lock%'</span>;</div><div class="line">+-------------------------------+-------+</div><div class="line">| Variable_name                 | Value |</div><div class="line">+-------------------------------+-------+</div><div class="line">| Innodb_row_lock_current_waits | 0     |</div><div class="line">| Innodb_row_lock_time          | 0     |</div><div class="line">| Innodb_row_lock_time_avg      | 0     |</div><div class="line">| Innodb_row_lock_time_max      | 0     |</div><div class="line">| Innodb_row_lock_waits         | 0     |</div><div class="line">+-------------------------------+-------+</div><div class="line">5 rows <span class="keyword">in</span> <span class="built_in">set</span> (0.00 sec)</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>还可以通过设置InnoDB Monitors来进一步观察发生锁冲突的表、数据行等，并分析锁争用的原因。<br>具体方法如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">mysql&gt; use mysql;</div><div class="line">Database changed</div><div class="line">mysql&gt; CREATE TABLE innodb_monitor(a INT) ENGINE=INNODB;</div><div class="line">Query OK, 0 rows affected (0.09 sec)</div></pre></td></tr></table></figure></p>
+<p>然后就可以用下面的语句来进行查看：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">mysql&gt; show innodb status\G;</div><div class="line">*************************** 1. row ***************************</div><div class="line">Status:</div><div class="line">=====================================</div><div class="line">170211 13:46:24 INNODB MONITOR OUTPUT</div><div class="line">=====================================</div><div class="line">Per second averages calculated from the last 1 seconds</div><div class="line">----------</div><div class="line">SEMAPHORES</div><div class="line">----------</div><div class="line">OS WAIT ARRAY INFO: reservation count 3, signal count 3</div><div class="line">Mutex spin waits 0, rounds 20, OS waits 0</div><div class="line">RW-shared spins 6, OS waits 3; RW-excl spins 0, OS waits 0</div></pre></td></tr></table></figure></p>
+<p>监视器可以通过下列命令来停止查看：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">mysql&gt; DROP TABLE innodb_monitor;</div><div class="line">Query OK, 0 rows affected (0.05 sec)</div></pre></td></tr></table></figure></p>
+<p>设置监视器后，在SHOW INNODB STATUS的显示内容中，会有详细的当前锁等待的信息，包括表名、锁类型、锁定记录的情况等，便于进行进一步的分析和问题的确定。打开监视器以后，默认情况下每15秒会向日志中记录监控的内容，如果长时间打开会导致.err文件变得非常的巨大，所以用户在确认问题原因之后，要记得删除监控表以关闭监视器，或者通过使用“–console”选项来启动服务器以关闭写日志文件。</p>
+<h5 id="2-4、InnoDB的两种锁形式"><a href="#2-4、InnoDB的两种锁形式" class="headerlink" title="2.4、InnoDB的两种锁形式"></a>2.4、InnoDB的两种锁形式</h5><p>创建测试用到的库表：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">mysql&gt; create database lock_test;</div><div class="line">Query OK, 1 row affected (0.00 sec)</div><div class="line"></div><div class="line">mysql&gt; use lock_test;</div><div class="line">Database changed</div><div class="line">mysql&gt; create table user(</div><div class="line">    -&gt;  user_id         int             comment <span class="string">'用户id'</span> primary key,</div><div class="line">    -&gt;  user_name       varchar(30) comment <span class="string">'用户姓名'</span>,</div><div class="line">    -&gt;  phone_no        varchar(20) comment <span class="string">'用户手机号码'</span></div><div class="line">    -&gt; );</div><div class="line">Query OK, 0 rows affected (0.00 sec)</div><div class="line"></div><div class="line">mysql&gt; insert into user(`user_id`,`user_name`,`phone_no`) values (1, <span class="string">'javaer1'</span>, <span class="string">'13925038990'</span>);</div><div class="line">Query OK, 1 row affected (0.00 sec)</div><div class="line"></div><div class="line">mysql&gt; insert into user(`user_id`,`user_name`,`phone_no`) values (2, <span class="string">'javaer2'</span>, <span class="string">'13316037190'</span>);</div><div class="line">Query OK, 1 row affected (0.00 sec)</div></pre></td></tr></table></figure></p>
+<ol>
+<li>1、共享锁：  <figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">SELECT * FROM table_name WHERE ... LOCK IN SHARE MODE;</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>用SELECT … IN SHARE MODE获得共享锁，主要用在需要数据依存关系时来确认某行记录是否存在，并确保没有人对这个记录进行UPDATE或者DELETE操作。但是如果当前事务也需要对该记录进行更新操作，则很有可能造成死锁，对于锁定行记录后需要进行更新操作的应用，应该使用SELECT… FOR UPDATE方式获得排他锁。</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">session1</th>
+<th style="text-align:left">session2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><img src="/2017/02/11/MySQL锁机制实践/1.png" alt="Mou icon"></td>
+<td style="text-align:left"><img src="/2017/02/11/MySQL锁机制实践/2.png" alt="Mou icon"></td>
+</tr>
+<tr>
+<td style="text-align:left"><img src="/2017/02/11/MySQL锁机制实践/3.png" alt="Mou icon"></td>
+<td style="text-align:left">不做任何操作</td>
+</tr>
+<tr>
+<td style="text-align:left">不做任何操作</td>
+<td style="text-align:left"><img src="/2017/02/11/MySQL锁机制实践/4.png" alt="Mou icon"></td>
+</tr>
+<tr>
+<td style="text-align:left">等待锁<img src="/2017/02/11/MySQL锁机制实践/5.png" alt="Mou icon"></td>
+<td style="text-align:left">不做任何操作</td>
+</tr>
+<tr>
+<td style="text-align:left">不做任何操作</td>
+<td style="text-align:left">死锁退出<img src="/2017/02/11/MySQL锁机制实践/6.png" alt="Mou icon"></td>
+</tr>
+<tr>
+<td style="text-align:left">获得锁后，可以成功更新<img src="/2017/02/11/MySQL锁机制实践/7.png" alt="Mou icon"></td>
+<td style="text-align:left">不做任何操作</td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li>2、排他锁<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">SELECT * FROM table_name WHERE ... FOR UPDATE</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">session1</th>
+<th style="text-align:left">session2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><img src="/2017/02/11/MySQL锁机制实践/1.png" alt="Mou icon"></td>
+<td style="text-align:left"><img src="/2017/02/11/MySQL锁机制实践/1.png" alt="Mou icon"></td>
+</tr>
+<tr>
+<td style="text-align:left">对user_id=1的记录添加排他锁<img src="/2017/02/11/MySQL锁机制实践/8.png" alt="Mou icon"></td>
+<td style="text-align:left">不做任何操作</td>
+</tr>
+<tr>
+<td style="text-align:left">不做任何操作</td>
+<td style="text-align:left">能够查询数据，但是不能加排他锁，否则会挂起等待<img src="/2017/02/11/MySQL锁机制实践/9.png" alt="Mou icon"></td>
+</tr>
+<tr>
+<td style="text-align:left">执行更新，并且做commit<a href="MySQL锁机制实践/10.png">Mou icon</a></td>
+<td style="text-align:left">不做任何操作</td>
+</tr>
+<tr>
+<td style="text-align:left">不做任何操作</td>
+<td style="text-align:left">获得锁，执行查询语句<img src="/2017/02/11/MySQL锁机制实践/11.png" alt="Mou icon"></td>
+</tr>
+</tbody>
+</table>
+<p>注意事项：InnoDB行锁是通过给索引上的索引项加锁来实现的，这一点MySQL与Oracle不同，后者是通过在数据块中对相应数据行加锁来实现的。InnoDB这种行锁实现特点意味着：只有通过索引条件检索数据，InnoDB才使用行级锁，否则，InnoDB将使用表锁！<br>在实际应用中，要特别注意InnoDB行锁的这一特性，不然的话，可能导致大量的锁冲突，从而影响并发性能。</p>
+<h4 id="3、实际应用"><a href="#3、实际应用" class="headerlink" title="3、实际应用"></a>3、实际应用</h4><ol>
+<li>1、将authCode、Token存储在数据库中，作为一行记录存储；</li>
+<li>2、每次查询数据库时加上排他锁，如果过期再去调用接口重新获取；</li>
+<li>3、简化后的部分代码如下：<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> String <span class="title">getToken</span><span class="params">(String logId)</span> </span>&#123;</div><div class="line">	logger.info(<span class="string">"[xxx接口调用-刷新token值]刷新token值开始，logId=&#123;&#125;"</span>, logId);</div><div class="line">	String token = <span class="string">""</span>;</div><div class="line">	DataSource ds = getJdbc().getDataSource();</div><div class="line">	PreparedStatement pst = <span class="keyword">null</span>;</div><div class="line">	ResultSet rs = <span class="keyword">null</span>;</div><div class="line">    Connection conn = <span class="keyword">null</span>;</div><div class="line">	String querySql = <span class="string">"select t.*,TIMESTAMPDIFF(SECOND, '1970-01-01 00:00:00', t.TOKEN_EXPIRE_TIME) AS TOKEN_EXPIRE_TIME_SECOND, TIMESTAMPDIFF(SECOND, '1970-01-01 00:00:00', now()) AS NOW_SECOND from xxx as t where t.ID='1' for update"</span>;</div><div class="line">	<span class="keyword">try</span>&#123;</div><div class="line">		conn = ds.getConnection();</div><div class="line">		conn.setAutoCommit(<span class="keyword">false</span>);</div><div class="line">		pst = conn.prepareStatement(querySql);</div><div class="line">		rs = pst.executeQuery(querySql);</div><div class="line">		</div><div class="line">		<span class="keyword">if</span>(<span class="keyword">null</span> != rs &amp;&amp; rs.next())&#123;</div><div class="line">			<span class="comment">//1.判断token是否过期</span></div><div class="line">			<span class="keyword">boolean</span> isExpire = <span class="keyword">true</span>;</div><div class="line">			<span class="keyword">int</span> tokenExpireTimeSecond = rs.getInt(<span class="string">"TOKEN_EXPIRE_TIME_SECOND"</span>);</div><div class="line">			<span class="keyword">int</span> nowSecond = rs.getInt(<span class="string">"NOW_SECOND"</span>);</div><div class="line">			</div><div class="line">			<span class="comment">//2.token过期时间、当前时间</span></div><div class="line">			<span class="keyword">if</span>((tokenExpireTimeSecond - nowSecond  - <span class="number">60</span>) &gt; <span class="number">0</span> )&#123;</div><div class="line">				isExpire = <span class="keyword">false</span>;</div><div class="line">				token = rs.getString(<span class="string">"TOKEN_DATA"</span>);</div><div class="line">				<span class="keyword">return</span> token;</div><div class="line">			&#125;</div><div class="line">			</div><div class="line">			<span class="comment">//TODO 3.获取authMap和tokenMap</span></div><div class="line">			Map&lt;String,Object&gt; tokenMap = <span class="keyword">new</span> HashMap&lt;String,Object&gt;();</div><div class="line">			Map&lt;String,Object&gt; authCodeMap = <span class="keyword">new</span> HashMap&lt;String,Object&gt;();</div><div class="line">			token = (String)tokenMap.get(<span class="string">"tokenData"</span>);</div><div class="line">			<span class="keyword">if</span>(isExpire)&#123;</div><div class="line">				String updateSql = <span class="string">"update xx set PUBLIC_KEY=? where ID = 1"</span>;</div><div class="line">				pst = conn.prepareStatement(updateSql);</div><div class="line">				pst.setString(<span class="number">1</span>, CommonUtil.nullToString(authCodeMap.get(<span class="string">"publicKey"</span>)));		<span class="comment">//PUBLIC_KEY</span></div><div class="line">				pst.executeUpdate();</div><div class="line">			&#125;</div><div class="line">		&#125;<span class="keyword">else</span>&#123;</div><div class="line">				</div><div class="line">			<span class="comment">//TODO 调用接口获取authCode和token数据信息，然后做新增插入操作</span></div><div class="line">			StringBuffer insertSql = <span class="keyword">new</span> StringBuffer(<span class="string">"insert into xxx (xx,xxx) values (?,?)"</span>);</div><div class="line">			pst = conn.prepareStatement(insertSql.toString());</div><div class="line">			pst.setString(<span class="number">1</span>, <span class="string">"1"</span>);		<span class="comment">//ID</span></div><div class="line">			pst.setString(<span class="number">2</span>, <span class="string">"xxx"</span>);	<span class="comment">//PUBLIC_KEY</span></div><div class="line">			pst.executeUpdate();</div><div class="line">		&#125;</div><div class="line">		conn.commit();</div><div class="line">		</div><div class="line">	&#125;<span class="keyword">catch</span>(Exception e)&#123;</div><div class="line">		token = <span class="string">""</span>;</div><div class="line">		<span class="keyword">try</span> &#123;</div><div class="line">			<span class="keyword">if</span>(<span class="keyword">null</span> != conn)&#123;</div><div class="line">				conn.rollback();</div><div class="line">			&#125;</div><div class="line">		&#125; <span class="keyword">catch</span> (SQLException e1) &#123;</div><div class="line">			e1.printStackTrace();</div><div class="line">		&#125;</div><div class="line">		logger.error(<span class="string">"[xxx接口调用-刷新token值]出现异常，logId=&#123;&#125;，trace="</span>+e, logId);</div><div class="line">	&#125; <span class="keyword">finally</span>&#123;</div><div class="line">		<span class="keyword">try</span> &#123;</div><div class="line">			<span class="keyword">if</span>(<span class="keyword">null</span> != rs)&#123;</div><div class="line">				rs.close();</div><div class="line">			&#125;</div><div class="line">			<span class="keyword">if</span>(<span class="keyword">null</span> != pst)&#123;</div><div class="line">				pst.close();</div><div class="line">			&#125;</div><div class="line">			<span class="keyword">if</span>(<span class="keyword">null</span> != conn)&#123;</div><div class="line">				conn.close();</div><div class="line">			&#125;</div><div class="line">		&#125; <span class="keyword">catch</span> (SQLException e) &#123;</div><div class="line">			e.printStackTrace();</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> token;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>周末闲来无事，Mark一下，也算学习的笔记啦。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;blockquote&gt;
+&lt;p&gt;最近几天项目上遇到一个需求，现有系统需要访问外部的API，而API提供方的鉴权方式 ，需要三个步骤：&lt;br&gt;1.访问签名接口1获取授权编码（authCode），authCode有效期10s，authCode在生命周期内无法重复获取且只能使用一次；&lt;br&gt;2.根据授权编码生成加密后的数字签名；&lt;br&gt;3.根据授权编码、数字签名访问接口2获得令牌token，token有效期20分钟；&lt;br&gt;业务接口访问带上token值完成鉴权认证，考虑到系统采用的是集群部署，无法在应用层面保证数据的一致性，为此考虑采用MySQL的锁机制进行实现，正好系统的学习一下MySQL的锁机制。 &lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h4 id=&quot;1、MySQL锁概述&quot;&gt;&lt;a href=&quot;#1、MySQL锁概述&quot; class=&quot;headerlink&quot; title=&quot;1、MySQL锁概述&quot;&gt;&lt;/a&gt;1、MySQL锁概述&lt;/h4&gt;&lt;p&gt;相对其他数据库而言，MySQL的锁机制比较简单，其最显著的特点是不同的存储引擎支持不同的锁机制。比如，&lt;code&gt;MyISAM&lt;/code&gt;和&lt;code&gt;MEMORY&lt;/code&gt;存储引擎采用的是表级锁（&lt;code&gt;table-level locking&lt;/code&gt;）；&lt;code&gt;BDB&lt;/code&gt;存储引擎采用的是页面锁（&lt;code&gt;page-level locking&lt;/code&gt;），但也支持表级锁；&lt;code&gt;InnoDB&lt;/code&gt;存储引擎既支持行级锁（&lt;code&gt;row-level locking&lt;/code&gt;），也支持表级锁，但默认情况下是采用行级锁，目前本系统采用到的存储引擎为&lt;code&gt;InnoDB&lt;/code&gt;。  &lt;/p&gt;
+&lt;p&gt;从锁的粒度层面MySQL分为表级锁、页面锁、行级锁三种形式。三种形式在系统开销、加锁速度、是否出现死锁、并发性能、锁的粒度都不太一样，如下表格所示：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th style=&quot;text-align:center&quot;&gt;锁类型&lt;/th&gt;
+&lt;th style=&quot;text-align:center&quot;&gt;系统开销&lt;/th&gt;
+&lt;th style=&quot;text-align:center&quot;&gt;加锁速度&lt;/th&gt;
+&lt;th style=&quot;text-align:center&quot;&gt;死锁&lt;/th&gt;
+&lt;th style=&quot;text-align:center&quot;&gt;并发性能&lt;/th&gt;
+&lt;th style=&quot;text-align:center&quot;&gt;锁的粒度&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;表级锁&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;系统开销小&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;加锁快&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;不死锁&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;并发底&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;锁的粒度大&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;页面锁&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;两者之间&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;两者之间&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;会死锁&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;两者之间&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;两者之间&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;行级锁&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;系统开销大&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;加锁慢&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;会死锁&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;并发高&lt;/td&gt;
+&lt;td style=&quot;text-align:center&quot;&gt;锁的粒度小&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;从上述特点可见，从锁的角度来说：表级锁更适合于以查询为主，只有少量按索引条件更新数据的应用，如Web查询类应用；而行级锁则更适合于有大量按索引条件并发更新少量不同数据，同时又有并发查询的应用，如一些在线事务处理系统。下面重点介绍MySQL基于&lt;code&gt;InnoDB&lt;/code&gt;的锁机制。&lt;/p&gt;
+    
+    </summary>
+    
+    
+      <category term="MySQL" scheme="http://javaer.site/tags/MySQL/"/>
+    
+      <category term="Java" scheme="http://javaer.site/tags/Java/"/>
+    
+  </entry>
   
   <entry>
     <title>新年</title>
