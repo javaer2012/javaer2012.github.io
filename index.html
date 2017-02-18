@@ -151,6 +151,81 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="_drafts-SpringBoot基于Junit的集成测试" class="article article-type-_drafts  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2017/02/18/SpringBoot基于Junit的集成测试/">SpringBoot基于Junit的集成测试</a>
+    </h1>
+  
+
+        
+        <a href="/2017/02/18/SpringBoot基于Junit的集成测试/" class="archive-article-date">
+  	<time datetime="2017-02-18T12:58:06.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2017-02-18</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>有人说，如果你不知道要去哪，往前走就是了，因为路就在脚下。但在软件开发领域，如果你没有目标，那么往往是寸步难行。开发出来的程序必是bug漫天，没人用的了。在编写应用程序的时候，明确目标最好的方式就是编写测试用例，确定程序运行过程能否达到自己的预期。  </p>
+<p>最近一直采用 SpringBoot+Maven+Thymeleaf 来开发公司的产品，SpringBoot的自动装配、起步依赖的核心特性着实让研发人员减少了各种配置，提高了开发的效率，从而更加专注于业务实现层。</p>
+<p>默认情况下，创建 SpringBoot 模板工程，STS会遵循Maven规范同时创建出 src/main/java 和 src/test/java 两个目录。项目构建时，Maven会遵循 <strong>compile-&gt;test-&gt;package-&gt;install</strong> 的顺序依次进行，后面步骤依赖于前一步的执行结果。笔者负责的研发中，对外API、核心的组件进行了测试用例的编写。</p>
+<p>Spring 的<code>SpringJunit4ClassRunner</code>可以在基于 JUnit 的应用程序测试里加载 Spring 应用程序上下文，在测试SpringBoot应用程序是，SpringBoot 除了拥有Spring的集成测试支持，它还开启自动配置和Web服务器，并提供了不少使用的测试辅助工具。下面重点讲讲 <code>SpringJunit4ClassRunner</code> 对 Spring 应用程序进行集成测试。<br></p>
+        
+          <a class="article-more-a" href="/2017/02/18/SpringBoot基于Junit的集成测试/#more">more >></a>
+        
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Java</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">SpringBoot</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">Junit</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2017/02/18/SpringBoot基于Junit的集成测试/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+
+
+
+  
     <article id="_drafts-MySQL锁机制实践" class="article article-type-_drafts  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -489,6 +564,14 @@
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color5">Java</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">SpringBoot</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color1">Junit</a>
               </li>
              
               <li class="article-tag-list-item">
