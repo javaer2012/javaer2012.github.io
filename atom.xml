@@ -76,9 +76,9 @@
     </summary>
     
     
-      <category term="Java" scheme="http://javaer.site/tags/Java/"/>
-    
       <category term="SpringBoot" scheme="http://javaer.site/tags/SpringBoot/"/>
+    
+      <category term="Java" scheme="http://javaer.site/tags/Java/"/>
     
       <category term="MQ" scheme="http://javaer.site/tags/MQ/"/>
     
@@ -119,9 +119,9 @@
     </summary>
     
     
-      <category term="Java" scheme="http://javaer.site/tags/Java/"/>
-    
       <category term="SpringBoot" scheme="http://javaer.site/tags/SpringBoot/"/>
+    
+      <category term="Java" scheme="http://javaer.site/tags/Java/"/>
     
       <category term="Junit" scheme="http://javaer.site/tags/Junit/"/>
     
@@ -329,9 +329,9 @@
     </summary>
     
     
-      <category term="MySQL" scheme="http://javaer.site/tags/MySQL/"/>
-    
       <category term="Java" scheme="http://javaer.site/tags/Java/"/>
+    
+      <category term="MySQL" scheme="http://javaer.site/tags/MySQL/"/>
     
   </entry>
   
