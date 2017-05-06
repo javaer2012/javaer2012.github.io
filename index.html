@@ -151,6 +151,70 @@
           <div id="js-content" class="content-ll">
             
   
+    <article id="post-Hey-Jude-or-Let-it-be" class="article article-type-post  article-index" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2017/05/06/Hey-Jude-or-Let-it-be/">Hey Jude or Let it be ?</a>
+    </h1>
+  
+
+        
+        <a href="/2017/05/06/Hey-Jude-or-Let-it-be/" class="archive-article-date">
+  	<time datetime="2017-05-06T09:34:07.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2017-05-06</time>
+</a>
+        
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p><iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width="330" height="86" src="//music.163.com/outchain/player?type=2&id=1821593&auto=0&height=66"></iframe><br>今年的夏天来得格外的早<br>虽是初夏，却沉闷燥热许久<br>喜欢往年初夏的早晨和傍晚<br>早晨，阳光初透，悠然的洒在绿中透黄的嫩叶上<br>风不热，也不冷，暖暖的，柔柔的<br>傍晚，夕阳西下，凝重的射在可爱漂浮的白云上<br>风不燥，微微凉，静静的，悄悄的</p>
+        
+          <a class="article-more-a" href="/2017/05/06/Hey-Jude-or-Let-it-be/#more">more >></a>
+        
+      
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">心情</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
+      
+
+      
+        <p class="article-more-link">
+          <a class="article-more-a" href="/2017/05/06/Hey-Jude-or-Let-it-be/">展开全文 >></a>
+        </p>
+      
+
+      
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+
+
+
+  
     <article id="post-禾雀花开" class="article article-type-post  article-index" itemscope itemprop="blogPost">
   <div class="article-inner">
     
@@ -436,117 +500,6 @@
 
 
   
-    <article id="_drafts-MySQL锁机制实践" class="article article-type-_drafts  article-index" itemscope itemprop="blogPost">
-  <div class="article-inner">
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2017/02/11/MySQL锁机制实践/">MySQL锁机制实践</a>
-    </h1>
-  
-
-        
-        <a href="/2017/02/11/MySQL锁机制实践/" class="archive-article-date">
-  	<time datetime="2017-02-11T07:39:07.000Z" itemprop="datePublished"><i class="icon-calendar icon"></i>2017-02-11</time>
-</a>
-        
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <blockquote>
-<p>最近几天项目上遇到一个需求，现有系统需要访问外部的API，而API提供方的鉴权方式 ，需要三个步骤：<br>1.访问签名接口1获取授权编码（authCode），authCode有效期10s，authCode在生命周期内无法重复获取且只能使用一次；<br>2.根据授权编码生成加密后的数字签名；<br>3.根据授权编码、数字签名访问接口2获得令牌token，token有效期20分钟；<br>业务接口访问带上token值完成鉴权认证，考虑到系统采用的是集群部署，无法在应用层面保证数据的一致性，为此考虑采用MySQL的锁机制进行实现，正好系统的学习一下MySQL的锁机制。 </p>
-</blockquote>
-<h4 id="1、MySQL锁概述"><a href="#1、MySQL锁概述" class="headerlink" title="1、MySQL锁概述"></a>1、MySQL锁概述</h4><p>相对其他数据库而言，MySQL的锁机制比较简单，其最显著的特点是不同的存储引擎支持不同的锁机制。比如，<code>MyISAM</code>和<code>MEMORY</code>存储引擎采用的是表级锁（<code>table-level locking</code>）；<code>BDB</code>存储引擎采用的是页面锁（<code>page-level locking</code>），但也支持表级锁；<code>InnoDB</code>存储引擎既支持行级锁（<code>row-level locking</code>），也支持表级锁，但默认情况下是采用行级锁，目前本系统采用到的存储引擎为<code>InnoDB</code>。  </p>
-<p>从锁的粒度层面MySQL分为表级锁、页面锁、行级锁三种形式。三种形式在系统开销、加锁速度、是否出现死锁、并发性能、锁的粒度都不太一样，如下表格所示：</p>
-<table>
-<thead>
-<tr>
-<th style="text-align:center">锁类型</th>
-<th style="text-align:center">系统开销</th>
-<th style="text-align:center">加锁速度</th>
-<th style="text-align:center">死锁</th>
-<th style="text-align:center">并发性能</th>
-<th style="text-align:center">锁的粒度</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:center">表级锁</td>
-<td style="text-align:center">系统开销小</td>
-<td style="text-align:center">加锁快</td>
-<td style="text-align:center">不死锁</td>
-<td style="text-align:center">并发底</td>
-<td style="text-align:center">锁的粒度大</td>
-</tr>
-<tr>
-<td style="text-align:center">页面锁</td>
-<td style="text-align:center">两者之间</td>
-<td style="text-align:center">两者之间</td>
-<td style="text-align:center">会死锁</td>
-<td style="text-align:center">两者之间</td>
-<td style="text-align:center">两者之间</td>
-</tr>
-<tr>
-<td style="text-align:center">行级锁</td>
-<td style="text-align:center">系统开销大</td>
-<td style="text-align:center">加锁慢</td>
-<td style="text-align:center">会死锁</td>
-<td style="text-align:center">并发高</td>
-<td style="text-align:center">锁的粒度小</td>
-</tr>
-</tbody>
-</table>
-<p>从上述特点可见，从锁的角度来说：表级锁更适合于以查询为主，只有少量按索引条件更新数据的应用，如Web查询类应用；而行级锁则更适合于有大量按索引条件并发更新少量不同数据，同时又有并发查询的应用，如一些在线事务处理系统。下面重点介绍MySQL基于<code>InnoDB</code>的锁机制。</p>
-        
-          <a class="article-more-a" href="/2017/02/11/MySQL锁机制实践/#more">more >></a>
-        
-      
-
-      
-    </div>
-    <div class="article-info article-info-index">
-      
-      
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags icon"></i>
-		<ul class="article-tag-list">
-			 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color1">MySQL</a>
-        		</li>
-      		 
-        		<li class="article-tag-list-item">
-        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color5">Java</a>
-        		</li>
-      		
-		</ul>
-	</div>
-
-      
-
-      
-        <p class="article-more-link">
-          <a class="article-more-a" href="/2017/02/11/MySQL锁机制实践/">展开全文 >></a>
-        </p>
-      
-
-      
-      <div class="clearfix"></div>
-    </div>
-  </div>
-</article>
-
-
-
-
-
-
-
-
-  
   
     <nav id="page-nav">
       <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/">Next &raquo;</a>
@@ -644,15 +597,15 @@
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">MQ</a>
-              </li>
-             
-              <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color1">Junit</a>
               </li>
              
               <li class="article-tag-list-item">
                 <a href="javascript:void(0)" class="js-tag color3">心情</a>
+              </li>
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">MQ</a>
               </li>
              
               <li class="article-tag-list-item">
